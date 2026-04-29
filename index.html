@@ -268,26 +268,29 @@ document.getElementById('btn-crop').addEventListener('click', async () => {
   } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
 });
 
+function isMobile() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.style.display = 'none';
-  document.body.appendChild(a);
   
-  // iOS Safari fix: open in new tab if click doesn't work
-  if (typeof a.click === 'function') {
-    a.click();
+  if (isMobile()) {
+    // Mobile: open in same window - iOS will show PDF viewer with share option
+    window.location.href = url;
   } else {
-    // Fallback for iOS
-    window.open(url, '_blank');
+    // Desktop: use download link
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   }
-  
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
 }
 
 // Auto-download helper - processes file and downloads immediately
