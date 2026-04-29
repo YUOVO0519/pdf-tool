@@ -7,38 +7,51 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
-  h1 { text-align: center; margin-bottom: 30px; color: #00d4ff; }
-  .tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .tab { padding: 10px 24px; background: #16213e; border: none; color: #888; cursor: pointer; border-radius: 8px; font-size: 16px; transition: all 0.2s; }
+  h1 { text-align: center; margin-bottom: 8px; color: #00d4ff; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 13px; }
+  .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 10px 20px; background: #16213e; border: none; color: #888; cursor: pointer; border-radius: 8px; font-size: 15px; transition: all 0.2s; }
   .tab.active { background: #0f3460; color: #00d4ff; }
   .tab:hover { background: #1f4068; }
   .panel { display: none; background: #16213e; border-radius: 12px; padding: 24px; max-width: 700px; margin: 0 auto; }
   .panel.active { display: block; }
-  .drop-zone { border: 2px dashed #00d4ff; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
+  .drop-zone { border: 2px dashed #00d4ff; border-radius: 12px; padding: 36px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
   .drop-zone:hover, .drop-zone.dragover { background: rgba(0,212,255,0.1); border-color: #00fff5; }
-  .drop-zone p { color: #888; margin-top: 8px; }
-  .file-list { list-style: none; margin: 12px 0; max-height: 200px; overflow-y: auto; }
-  .file-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a1a2e; border-radius: 6px; margin-bottom: 6px; font-size: 14px; }
-  .file-list .remove { background: #e94560; border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .drop-zone p { color: #888; margin-top: 8px; font-size: 14px; }
+  .file-header { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; }
+  .file-header span { color: #888; font-size: 13px; }
+  .clear-btn { background: #e94560; border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .clear-btn:hover { background: #ff6b6b; }
+  .file-list { list-style: none; margin: 6px 0; max-height: 260px; overflow-y: auto; }
+  .file-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a1a2e; border-radius: 6px; margin-bottom: 5px; font-size: 14px; cursor: grab; }
+  .file-list li:active { cursor: grabbing; }
+  .file-list li.dragging { opacity: 0.5; }
+  .file-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+  .file-list li .size { color: #666; font-size: 12px; margin-right: 8px; }
+  .file-list .remove { background: #e94560; border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
+  .file-list .remove:hover { background: #ff6b6b; }
+  .drag-handle { color: #444; margin-right: 8px; font-size: 16px; cursor: grab; }
+  .settings { margin: 14px 0; }
+  .settings label { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 14px; color: #aaa; }
+  .settings input[type="checkbox"] { width: 16px; height: 16px; }
   .btn { display: block; width: 100%; padding: 14px; background: #00d4ff; border: none; border-radius: 8px; color: #1a1a2e; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px; }
   .btn:hover { background: #00fff5; }
   .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-  .note { font-size: 13px; color: #666; margin: 10px 0; }
-  .settings { margin: 16px 0; }
-  .settings label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; }
-  .settings input[type="checkbox"] { width: 18px; height: 18px; }
-  .preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-  .preview-grid img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid #0f3460; }
+  .note { font-size: 12px; color: #555; margin: 8px 0; }
+  .info-box { background: #1a1a2e; border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 13px; color: #888; }
+  .info-box strong { color: #00d4ff; }
 </style>
 </head>
 <body>
 
 <h1>📄 PDF 工具箱</h1>
+<p class="subtitle">纯网页处理，无需上传，保护隐私</p>
 
 <div class="tabs">
   <button class="tab active" data-tab="img2pdf">图片转 PDF</button>
   <button class="tab" data-tab="merge">合并 PDF</button>
   <button class="tab" data-tab="crop">裁剪白边</button>
+  <button class="tab" data-tab="extract">提取文字</button>
 </div>
 
 <!-- 图片转 PDF -->
@@ -48,22 +61,33 @@
     <p>支持 JPG、PNG、GIF、WebP</p>
   </div>
   <input type="file" id="fi-img2pdf" multiple accept="image/*" hidden>
+  <div class="file-header">
+    <span id="count-img2pdf">已选择 0 个文件</span>
+    <button class="clear-btn" id="clear-img2pdf" style="display:none">清空全部</button>
+  </div>
   <ul class="file-list" id="fl-img2pdf"></ul>
   <div class="settings">
-    <label><input type="checkbox" id="crop-img2pdf" checked> 裁剪白边 (根据首图尺寸)</label>
+    <label><input type="checkbox" id="crop-img2pdf" checked> 统一尺寸（按首图）</label>
   </div>
-  <button class="btn" id="btn-img2pdf" disabled>开始转换</button>
+  <button class="btn" id="btn-img2pdf" disabled>开始转换并下载</button>
 </div>
 
 <!-- 合并 PDF -->
 <div id="merge" class="panel">
   <div class="drop-zone" id="dz-merge">
-    拖放 PDF 文件到这里<br>或点击选择文件
-    <p>支持多选，调整顺序</p>
+    拖放 PDF 文件到这里<br>或点击选择文件（可拖拽调整顺序）
+    <p>支持多选</p>
   </div>
   <input type="file" id="fi-merge" multiple accept="application/pdf" hidden>
+  <div class="file-header">
+    <span id="count-merge">已选择 0 个文件</span>
+    <button class="clear-btn" id="clear-merge" style="display:none">清空全部</button>
+  </div>
   <ul class="file-list" id="fl-merge"></ul>
-  <button class="btn" id="btn-merge" disabled>开始合并</button>
+  <div class="info-box">
+    💡 <strong>提示：</strong>拖拽文件可调整顺序，调整后点击合并即可
+  </div>
+  <button class="btn" id="btn-merge" disabled>开始合并并下载</button>
 </div>
 
 <!-- 裁剪白边 -->
@@ -73,11 +97,39 @@
     <p>自动裁剪图片页面的白边</p>
   </div>
   <input type="file" id="fi-crop" multiple accept="application/pdf" hidden>
+  <div class="file-header">
+    <span id="count-crop">已选择 0 个文件</span>
+    <button class="clear-btn" id="clear-crop" style="display:none">清空全部</button>
+  </div>
   <ul class="file-list" id="fl-crop"></ul>
-  <button class="btn" id="btn-crop" disabled>开始裁剪</button>
+  <button class="btn" id="btn-crop" disabled>开始裁剪并下载</button>
+</div>
+
+<!-- 提取文字 -->
+<div id="extract" class="panel">
+  <div class="drop-zone" id="dz-extract">
+    拖放 PDF 文件到这里<br>或点击选择文件
+    <p>提取 PDF 中的文字内容（仅支持文本型 PDF）</p>
+  </div>
+  <input type="file" id="fi-extract" multiple accept="application/pdf" hidden>
+  <div class="file-header">
+    <span id="count-extract">已选择 0 个文件</span>
+    <button class="clear-btn" id="clear-extract" style="display:none">清空全部</button>
+  </div>
+  <ul class="file-list" id="fl-extract"></ul>
+  <div class="info-box">
+    ⚠️ 仅能提取<strong>文字型 PDF</strong>，扫描版图片 PDF 无法提取
+  </div>
+  <button class="btn" id="btn-extract" disabled>提取文字</button>
+  <div id="extract-result" style="margin-top:16px;display:none">
+    <div class="file-header"><span>提取结果</span><button class="clear-btn" onclick="copyText()">复制文字</button></div>
+    <textarea id="extract-text" readonly style="width:100%;min-height:200px;background:#1a1a2e;color:#eee;border:1px solid #333;border-radius:8px;padding:12px;margin-top:8px;font-size:13px;resize:vertical"></textarea>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script>
 // Tab switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -89,58 +141,20 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
-// Drop zone logic
-function setupDropZone(dropId, fileId, listId, accept, filter) {
-  const dz = document.getElementById(dropId);
-  const fi = document.getElementById(fileId);
-  const fl = document.getElementById(listId);
-  let files = [];
-
-  dz.addEventListener('click', () => fi.click());
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('dragover');
-    addFiles([...e.dataTransfer.files]);
-  });
-  fi.addEventListener('change', () => addFiles([...fi.files]));
-
-  function addFiles(newFiles) {
-    newFiles.filter(f => !accept || f.type.startsWith(accept.replace('*', ''))).forEach(f => {
-      if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f);
-    });
-    render();
-  }
-
-  function render() {
-    fl.innerHTML = files.map((f, i) => `
-      <li>
-        <span>${i + 1}. ${f.name}</span>
-        <button class="remove" onclick="removeFile(${i})">移除</button>
-      </li>
-    `).join('');
-    document.getElementById(btnId()).disabled = files.length === 0;
-  }
-
-  function btnId() {
-    if (listId === 'fl-img2pdf') return 'btn-img2pdf';
-    if (listId === 'fl-merge') return 'btn-merge';
-    if (listId === 'fl-crop') return 'btn-crop';
-  }
-
-  window[`removeFile_${listId}`] = i => { files.splice(i, 1); render(); };
-  window[`_getFiles_${listId}`] = () => files;
-
-  // Make remove function global
-  window[`removeFile`] = i => { files.splice(i, 1); render(); };
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
-// Fix: make unique remove functions
-['img2pdf', 'merge', 'crop'].forEach(type => {
+function setupDropZone(type) {
   const dz = document.getElementById(`dz-${type}`);
   const fi = document.getElementById(`fi-${type}`);
   const fl = document.getElementById(`fl-${type}`);
+  const count = document.getElementById(`count-${type}`);
+  const clearBtn = document.getElementById(`clear-${type}`);
+  const btn = document.getElementById(`btn-${type}`);
+  const accept = type === 'img2pdf' ? 'image/' : 'application/pdf';
   let files = [];
 
   dz.addEventListener('click', () => fi.click());
@@ -149,169 +163,175 @@ function setupDropZone(dropId, fileId, listId, accept, filter) {
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
   fi.addEventListener('change', () => addFiles([...fi.files]));
 
+  clearBtn.addEventListener('click', e => { e.stopPropagation(); files = []; render(); });
+
   function addFiles(newFiles) {
-    const accept = type === 'merge' || type === 'crop' ? 'application/pdf' : 'image/';
-    newFiles.filter(f => f.type.startsWith(accept.split('/')[0])).forEach(f => {
+    newFiles.filter(f => f.type.startsWith(accept.split('/')[0]) || accept === 'image/' && f.type.startsWith('image/')).forEach(f => {
       if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f);
     });
     render();
   }
 
   function render() {
+    count.textContent = `已选择 ${files.length} 个文件`;
+    clearBtn.style.display = files.length > 0 ? 'block' : 'none';
+    btn.disabled = files.length === 0;
     fl.innerHTML = files.map((f, i) => `
-      <li>
-        <span>${i + 1}. ${f.name}</span>
-        <button class="remove" onclick="remove_${type}(${i})">移除</button>
+      <li draggable="true" data-index="${i}">
+        <span class="drag-handle">☰</span>
+        <span class="name" title="${f.name}">${i + 1}. ${f.name}</span>
+        <span class="size">${formatSize(f.size)}</span>
+        <button class="remove" onclick="remove_${type}(${i})">×</button>
       </li>
     `).join('');
-    document.getElementById(`btn-${type}`).disabled = files.length === 0;
+    initDragDrop();
   }
 
   window[`remove_${type}`] = i => { files.splice(i, 1); render(); };
   window[`_files_${type}`] = () => files;
-});
+
+  // Drag to reorder
+  function initDragDrop() {
+    const items = fl.querySelectorAll('li');
+    items.forEach(item => {
+      item.addEventListener('dragstart', e => {
+        item.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', item.dataset.index);
+      });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+      item.addEventListener('dragover', e => e.preventDefault());
+      item.addEventListener('drop', e => {
+        e.preventDefault();
+        const fromIdx = parseInt(document.querySelector('.dragging').dataset.index);
+        const toIdx = parseInt(item.dataset.index);
+        const moved = files.splice(fromIdx, 1)[0];
+        files.splice(toIdx, 0, moved);
+        render();
+      });
+    });
+  }
+  initDragDrop();
+}
+
+['img2pdf', 'merge', 'crop', 'extract'].forEach(setupDropZone);
 
 // Image to PDF
 document.getElementById('btn-img2pdf').addEventListener('click', async () => {
   const files = window['_files_img2pdf']();
   if (files.length === 0) return;
-  
   const btn = document.getElementById('btn-img2pdf');
-  const originalText = btn.textContent;
-  btn.textContent = '处理中...';
-  btn.disabled = true;
-
+  btn.textContent = '处理中...'; btn.disabled = true;
   try {
     const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.create();
     let firstW = 0, firstH = 0;
-
+    const crop = document.getElementById('crop-img2pdf').checked;
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const ext = file.name.split('.').pop().toLowerCase();
-      let img;
-
-      if (ext === 'png') {
-        img = await pdfDoc.embedPng(await file.arrayBuffer());
-      } else {
-        img = await pdfDoc.embedJpg(await file.arrayBuffer());
-      }
-
+      const ext = files[i].name.split('.').pop().toLowerCase();
+      let img = ext === 'png'
+        ? await pdfDoc.embedPng(await files[i].arrayBuffer())
+        : await pdfDoc.embedJpg(await files[i].arrayBuffer());
       if (i === 0) { firstW = img.width; firstH = img.height; }
-
       let w = img.width, h = img.height;
-      if (document.getElementById('crop-img2pdf').checked && i > 0) { w = firstW; h = firstH; }
-
-      const page = pdfDoc.addPage([w, h]);
-      page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+      if (crop && i > 0) { w = firstW; h = firstH; }
+      pdfDoc.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
     }
-
-    const pdfBytes = await pdfDoc.save();
-    downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'images.pdf');
+    downloadBlob(new Blob([await pdfDoc.save()], { type: 'application/pdf' }), 'images.pdf');
     btn.textContent = '✓ 已下载';
-    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
-  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
+    setTimeout(() => { btn.textContent = '开始转换并下载'; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = '开始转换并下载'; btn.disabled = false; }
 });
 
 // Merge PDFs
 document.getElementById('btn-merge').addEventListener('click', async () => {
   const files = window['_files_merge']();
   if (files.length === 0) return;
-  
   const btn = document.getElementById('btn-merge');
-  const originalText = btn.textContent;
-  btn.textContent = '处理中...';
-  btn.disabled = true;
-
+  btn.textContent = '处理中...'; btn.disabled = true;
   try {
     const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.create();
-
-    for (const file of files) {
-      const src = await PDFDocument.load(await file.arrayBuffer());
-      const pages = await pdfDoc.copyPages(src, src.getPageIndices());
-      pages.forEach(p => pdfDoc.addPage(p));
+    for (const f of files) {
+      const src = await PDFDocument.load(await f.arrayBuffer());
+      (await pdfDoc.copyPages(src, src.getPageIndices())).forEach(p => pdfDoc.addPage(p));
     }
-
-    const pdfBytes = await pdfDoc.save();
-    downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'merged.pdf');
+    downloadBlob(new Blob([await pdfDoc.save()], { type: 'application/pdf' }), 'merged.pdf');
     btn.textContent = '✓ 已下载';
-    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
-  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
+    setTimeout(() => { btn.textContent = '开始合并并下载'; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = '开始合并并下载'; btn.disabled = false; }
 });
 
-// Crop PDF margins (simplified - copies pages as-is for pdf-lib)
+// Crop PDF (copy only)
 document.getElementById('btn-crop').addEventListener('click', async () => {
   const files = window['_files_crop']();
   if (files.length === 0) return;
-  
   const btn = document.getElementById('btn-crop');
-  const originalText = btn.textContent;
-  btn.textContent = '处理中...';
-  btn.disabled = true;
-
+  btn.textContent = '处理中...'; btn.disabled = true;
   try {
     const { PDFDocument } = PDFLib;
-
-    for (const file of files) {
-      const srcDoc = await PDFDocument.load(await file.arrayBuffer());
+    for (const f of files) {
+      const src = await PDFDocument.load(await f.arrayBuffer());
       const pdfDoc = await PDFDocument.create();
-      const pages = await pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-      pages.forEach(p => pdfDoc.addPage(p));
-      
-      const pdfBytes = await pdfDoc.save();
-      downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), file.name);
+      (await pdfDoc.copyPages(src, src.getPageIndices())).forEach(p => pdfDoc.addPage(p));
+      downloadBlob(new Blob([await pdfDoc.save()], { type: 'application/pdf' }), f.name);
     }
-    
     btn.textContent = '✓ 已下载';
-    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
-  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
+    setTimeout(() => { btn.textContent = '开始裁剪并下载'; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = '开始裁剪并下载'; btn.disabled = false; }
 });
 
-function isMobile() {
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+// Extract text from PDF
+document.getElementById('btn-extract').addEventListener('click', async () => {
+  const files = window['_files_extract']();
+  if (files.length === 0) return;
+  const btn = document.getElementById('btn-extract');
+  const resultDiv = document.getElementById('extract-result');
+  const textArea = document.getElementById('extract-text');
+  btn.textContent = '提取中...'; btn.disabled = true;
+  resultDiv.style.display = 'none';
+  try {
+    let allText = '';
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(' ') + '\n\n';
+      }
+      allText += `=== ${file.name} (${pdf.numPages}页) ===\n${text.trim()}\n\n`;
+    }
+    textArea.value = allText.trim();
+    resultDiv.style.display = 'block';
+    btn.textContent = '✓ 提取完成';
+    setTimeout(() => { btn.textContent = '提取文字'; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = '提取文字'; btn.disabled = false; }
+});
+
+function copyText() {
+  const ta = document.getElementById('extract-text');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.querySelector('#extract .clear-btn');
+  btn.textContent = '已复制!';
+  setTimeout(() => btn.textContent = '复制文字', 1500);
 }
+
+function isMobile() { return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); }
 
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob);
-  
   if (isMobile()) {
-    // Mobile: open in same window - iOS will show PDF viewer with share option
     window.location.href = url;
   } else {
-    // Desktop: use download link
     const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
+    a.href = url; a.download = name;
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-  }
-}
-
-// Auto-download helper - processes file and downloads immediately
-async function processAndDownload(processFn, outputName) {
-  const btn = event.target;
-  const originalText = btn.textContent;
-  btn.textContent = '处理中...';
-  btn.disabled = true;
-  
-  try {
-    const blob = await processFn();
-    downloadBlob(blob, outputName);
-    btn.textContent = '✓ 已下载';
-    setTimeout(() => {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }, 2000);
-  } catch (e) {
-    alert('错误: ' + e.message);
-    btn.textContent = originalText;
-    btn.disabled = false;
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   }
 }
 </script>
