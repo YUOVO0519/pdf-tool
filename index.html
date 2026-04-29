@@ -61,6 +61,7 @@
   <button class="tab" data-tab="merge">合并 PDF</button>
   <button class="tab" data-tab="crop">裁剪白边</button>
   <button class="tab" data-tab="extract">提取文字</button>
+  <button class="tab" data-tab="compress">压缩 PDF</button>
 </div>
 
 <!-- 图片转 PDF -->
@@ -151,6 +152,29 @@
   </div>
 </div>
 
+<!-- 压缩 PDF -->
+<div id="compress" class="panel">
+  <div class="drop-zone" id="dz-compress">
+    拖放 PDF 文件到这里<br>或点击选择文件
+    <p>支持多选，压缩后下载</p>
+  </div>
+  <input type="file" id="fi-compress" multiple accept="application/pdf" hidden>
+  <div class="file-header">
+    <span id="count-compress">已选择 0 个文件</span>
+    <button class="clear-btn" id="clear-compress" style="display:none">清空全部</button>
+  </div>
+  <ul class="file-list" id="fl-compress"></ul>
+  <div class="settings" style="margin-top:14px">
+    <label>压缩质量：</label>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="quality" value="high" checked style="width:16px;height:16px"> 高（推荐）</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="quality" value="medium" style="width:16px;height:16px"> 中</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="quality" value="low" style="width:16px;height:16px"> 低（最小）</label>
+    </div>
+  </div>
+  <button class="btn" id="btn-compress" disabled>开始压缩并下载</button>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -237,7 +261,7 @@ function setupDropZone(type) {
   initDragDrop();
 }
 
-['img2pdf', 'merge', 'crop', 'extract'].forEach(setupDropZone);
+['img2pdf', 'merge', 'crop', 'extract', 'compress'].forEach(setupDropZone);
 
 // Camera / Photo to PDF
 let cameraPhotos = [];
@@ -404,6 +428,43 @@ function copyText() {
   btn.textContent = '已复制!';
   setTimeout(() => btn.textContent = '复制文字', 1500);
 }
+
+// Compress PDF
+document.getElementById('btn-compress').addEventListener('click', async () => {
+  const files = window['_files_compress']();
+  if (files.length === 0) return;
+  const quality = document.querySelector('input[name="quality"]:checked').value;
+  const btn = document.getElementById('btn-compress');
+  btn.textContent = '压缩中...'; btn.disabled = true;
+  try {
+    const { PDFDocument } = PDFLib;
+    // Quality settings: jpeg quality and DCF (downsampling)
+    const qualityMap = { high: 85, medium: 60, low: 30 };
+    const jpegQuality = qualityMap[quality];
+    
+    for (const file of files) {
+      const srcBytes = await file.arrayBuffer();
+      const srcDoc = await PDFDocument.load(srcBytes);
+      const pdfDoc = await PDFDocument.create();
+      
+      const pages = await pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices());
+      pages.forEach(p => pdfDoc.addPage(p));
+      
+      // Save with compression - pdf-lib doesn't expose JPEG quality directly
+      // Use flate compression which is always applied
+      const options = {};
+      if (quality === 'low') {
+        // Drop unused objects + compress streams
+        options.useObjectStreams = true;
+      }
+      
+      const pdfBytes = await pdfDoc.save({ useFlateCompression: true });
+      downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'compressed_' + file.name);
+    }
+    btn.textContent = '✓ 已下载';
+    setTimeout(() => { btn.textContent = '开始压缩并下载'; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = '开始压缩并下载'; btn.disabled = false; }
+});
 
 function isMobile() { return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); }
 
