@@ -174,13 +174,15 @@ function setupDropZone(dropId, fileId, listId, accept, filter) {
 // Image to PDF
 document.getElementById('btn-img2pdf').addEventListener('click', async () => {
   const files = window['_files_img2pdf']();
-  const crop = document.getElementById('crop-img2pdf').checked;
+  if (files.length === 0) return;
+  
   const btn = document.getElementById('btn-img2pdf');
+  const originalText = btn.textContent;
   btn.textContent = '处理中...';
   btn.disabled = true;
 
   try {
-    const { PDFDocument, rgb } = PDFLib;
+    const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.create();
     let firstW = 0, firstH = 0;
 
@@ -198,25 +200,26 @@ document.getElementById('btn-img2pdf').addEventListener('click', async () => {
       if (i === 0) { firstW = img.width; firstH = img.height; }
 
       let w = img.width, h = img.height;
-      if (crop && i > 0) { w = firstW; h = firstH; }
+      if (document.getElementById('crop-img2pdf').checked && i > 0) { w = firstW; h = firstH; }
 
-      // Scale to fit in 1:1 aspect ratio if different, or use original
       const page = pdfDoc.addPage([w, h]);
       page.drawImage(img, { x: 0, y: 0, width: w, height: h });
     }
 
     const pdfBytes = await pdfDoc.save();
-    downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'converted.pdf');
-  } catch (e) { alert('错误: ' + e.message); }
-
-  btn.textContent = '开始转换';
-  btn.disabled = files.length === 0;
+    downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'images.pdf');
+    btn.textContent = '✓ 已下载';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
 });
 
 // Merge PDFs
 document.getElementById('btn-merge').addEventListener('click', async () => {
   const files = window['_files_merge']();
+  if (files.length === 0) return;
+  
   const btn = document.getElementById('btn-merge');
+  const originalText = btn.textContent;
   btn.textContent = '处理中...';
   btn.disabled = true;
 
@@ -232,16 +235,18 @@ document.getElementById('btn-merge').addEventListener('click', async () => {
 
     const pdfBytes = await pdfDoc.save();
     downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'merged.pdf');
-  } catch (e) { alert('错误: ' + e.message); }
-
-  btn.textContent = '开始合并';
-  btn.disabled = files.length === 0;
+    btn.textContent = '✓ 已下载';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
 });
 
-// Crop PDF margins
+// Crop PDF margins (simplified - copies pages as-is for pdf-lib)
 document.getElementById('btn-crop').addEventListener('click', async () => {
   const files = window['_files_crop']();
+  if (files.length === 0) return;
+  
   const btn = document.getElementById('btn-crop');
+  const originalText = btn.textContent;
   btn.textContent = '处理中...';
   btn.disabled = true;
 
@@ -249,45 +254,62 @@ document.getElementById('btn-crop').addEventListener('click', async () => {
     const { PDFDocument } = PDFLib;
 
     for (const file of files) {
-      const srcBytes = await file.arrayBuffer();
-      const srcDoc = await PDFDocument.load(srcBytes);
+      const srcDoc = await PDFDocument.load(await file.arrayBuffer());
       const pdfDoc = await PDFDocument.create();
-
-      for (let i = 0; i < srcDoc.getPageCount(); i++) {
-        const srcPage = srcDoc.getPages()[i];
-        const { width, height } = srcPage.getSize();
-
-        // Copy page with potentially trimmed margins
-        const [newPage] = pdfDoc.addPage([width, height]);
-        const contentDoc = await PDFDocument.create();
-        const [copiedPage] = contentDoc.addPage([width, height]);
-
-        // Use raw page copy
-        const pageCopy = await pdfDoc.copyPage(srcDoc, i);
-        pdfDoc.addPage(pageCopy);
-      }
-
-      // Actually, pdf-lib doesn't support direct page manipulation well
-      // Just copy and save as-is for now
       const pages = await pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-      const newDoc = await PDFDocument.create();
-      pages.forEach(p => newDoc.addPage(p));
-
-      // pdf-lib doesn't support setMediabox, so just do simple copy
-      const pdfBytes = await newDoc.save();
-      downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), `cropped_${file.name}`);
+      pages.forEach(p => pdfDoc.addPage(p));
+      
+      const pdfBytes = await pdfDoc.save();
+      downloadBlob(new Blob([pdfBytes], { type: 'application/pdf' }), file.name);
     }
-  } catch (e) { alert('错误: ' + e.message); }
-
-  btn.textContent = '开始裁剪';
-  btn.disabled = files.length === 0;
+    
+    btn.textContent = '✓ 已下载';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  } catch (e) { alert('错误: ' + e.message); btn.textContent = originalText; btn.disabled = false; }
 });
 
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url;
+  a.download = name;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  
+  // iOS Safari fix: open in new tab if click doesn't work
+  if (typeof a.click === 'function') {
+    a.click();
+  } else {
+    // Fallback for iOS
+    window.open(url, '_blank');
+  }
+  
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+// Auto-download helper - processes file and downloads immediately
+async function processAndDownload(processFn, outputName) {
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = '处理中...';
+  btn.disabled = true;
+  
+  try {
+    const blob = await processFn();
+    downloadBlob(blob, outputName);
+    btn.textContent = '✓ 已下载';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }, 2000);
+  } catch (e) {
+    alert('错误: ' + e.message);
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
